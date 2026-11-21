@@ -47,4 +47,20 @@ export class OtpPage {
         await this.verifyOtpButton.waitForDisplayed({ timeout: 10_000 });
         return this.verifyOtpButton.isDisplayed();
     }
+
+    async enterOtpAndSubmit(otp: string): Promise<void> {
+        if (!/^\d{6}$/.test(otp)) {
+            throw new Error('The SMS OTP must contain exactly six digits.');
+        }
+        const fields = await this.otpInputFields;
+        if (fields.length !== otp.length) {
+            throw new Error(`Expected six OTP fields, found ${fields.length}.`);
+        }
+        for (let index = 0; index < otp.length; index += 1) {
+            const field = fields[index];
+            const digit = otp[index];
+            if (field && digit !== undefined) await field.setValue(digit);
+        }
+        await this.verifyOtpButton.click();
+    }
 }

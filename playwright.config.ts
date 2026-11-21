@@ -12,4 +12,5 @@ export default defineConfig({
     timeout: 120_000,
     workers: 1,
     reporter: 'list',
+    globalSetup: './utils/appium.global-setup.ts',
 });
