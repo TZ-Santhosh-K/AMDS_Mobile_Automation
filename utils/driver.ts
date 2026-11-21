@@ -1,8 +1,8 @@
 
 import { remote } from 'webdriverio';
 
-const APPIUM_HOST = '127.0.0.1';
-const APPIUM_PORT = 4723;
+const APPIUM_HOST = process.env.APPIUM_HOST ?? '127.0.0.1';
+const APPIUM_PORT = Number(process.env.APPIUM_PORT ?? 4723);
 const APP_PACKAGE = 'com.amds.app';
 const APP_ACTIVITY = '.MainActivity';
 const DEVICE_ID = process.env.AMDS_DEVICE_ID ?? 'b0c73518';
