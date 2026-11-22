@@ -9,7 +9,7 @@ const testDir = defineBddConfig({
 
 export default defineConfig({
     testDir,
-    timeout: 120_000,
+    timeout: 240_000,
     workers: 1,
     reporter: 'list',
     globalSetup: './utils/appium.global-setup.ts',

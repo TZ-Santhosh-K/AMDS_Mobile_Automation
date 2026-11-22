@@ -10,11 +10,13 @@ import { LoginPage } from '../pages/LoginPage';
 import { OtpPage } from '../pages/OtpPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { getLatestSmsTimestamp, waitForSmsOtp } from '../utils/sms-otp';
+import { fixedOtpFor, getDeviceId, requiredEnv } from '../utils/config';
 
 const { Given, When, Then, After } = createBdd();
 
 let driver: Awaited<ReturnType<typeof createAppiumDriver>> | undefined;
 let smsBaselineTimestamp = 0;
+let fixedOtp: string | undefined;
 
 function getDriver() {
     if (!driver) {
@@ -24,23 +26,20 @@ function getDriver() {
     return driver;
 }
 
+
 Given('the AMDS application is launched', async () => {
+    fixedOtp = undefined;
+    smsBaselineTimestamp = 0;
     driver = await createAppiumDriver();
 });
 
 When('I enter my registered mobile number and request OTP', async () => {
-    const mobileNumber = process.env.AMDS_TEST_MOBILE;
-
-    if (!mobileNumber) {
-        throw new Error('AMDS_TEST_MOBILE environment variable is missing.');
-    }
-
-    const deviceId = process.env.AMDS_DEVICE_ID ?? 'b0c73518';
-    smsBaselineTimestamp = await getLatestSmsTimestamp(deviceId);
-
+    const mobileNumber = requiredEnv('AMDS_TEST_MOBILE');
+    fixedOtp = fixedOtpFor('mobile', mobileNumber);
     const loginPage = new LoginPage(getDriver());
 
     await loginPage.enterMobileNumber(mobileNumber);
+    if (!fixedOtp) smsBaselineTimestamp = await getLatestSmsTimestamp(getDeviceId());
     await loginPage.tapGetOtp();
 });
 
@@ -65,8 +64,8 @@ Then('the Verify OTP button should be displayed', async () => {
 });
 
 When('I fetch the OTP from SMS and submit it', async () => {
-    const deviceId = process.env.AMDS_DEVICE_ID ?? 'b0c73518';
-    const otp = await waitForSmsOtp(deviceId, smsBaselineTimestamp);
+    const deviceId = getDeviceId();
+    const otp = fixedOtp ?? await waitForSmsOtp(deviceId, smsBaselineTimestamp);
     const otpPage = new OtpPage(getDriver());
     await otpPage.enterOtpAndSubmit(otp);
 });

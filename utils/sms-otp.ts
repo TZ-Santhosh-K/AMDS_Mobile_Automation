@@ -2,14 +2,11 @@ import { execFile } from 'node:child_process';
 import { access } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import { parseInbox, extractOtp, type SmsMessage } from './sms-parser';
 
 const execFileAsync = promisify(execFile);
 const pollIntervalMs = 2_000;
 
-interface SmsMessage {
-    body: string;
-    receivedAt: number;
-}
 
 async function resolveAdbPath(): Promise<string> {
     const executable = process.platform === 'win32' ? 'adb.exe' : 'adb';
@@ -46,22 +43,23 @@ async function resolveAdbPath(): Promise<string> {
 async function readInbox(deviceId: string): Promise<SmsMessage[]> {
     try {
         const adbPath = await resolveAdbPath();
-        const { stdout } = await execFileAsync(
+        const { stdout, stderr } = await execFileAsync(
             adbPath,
-            ['-s', deviceId, 'shell', 'content', 'query', '--uri', 'content://sms/inbox', '--projection', 'body:date', '--sort', 'date DESC'],
+            [
+                '-s',
+                deviceId,
+                'shell',
+                'content',
+                'query',
+                '--uri',
+                'content://sms/inbox',
+                '--projection',
+                'body:date',
+            ],
             { timeout: 8_000, maxBuffer: 1_000_000 },
         );
 
-        const messages: SmsMessage[] = [];
-        const rowPattern = /Row:\s*\d+\s+body=(.*?),\s*date=(\d+)/g;
-        for (const match of stdout.matchAll(rowPattern)) {
-            const body = match[1];
-            const receivedAt = Number(match[2]);
-            if (body !== undefined && Number.isFinite(receivedAt)) {
-                messages.push({ body, receivedAt });
-            }
-        }
-        return messages;
+        return parseInbox(stdout, stderr);
     } catch (error) {
         const detail = error instanceof Error ? error.message : String(error);
         throw new Error(
@@ -70,24 +68,13 @@ async function readInbox(deviceId: string): Promise<SmsMessage[]> {
     }
 }
 
-function extractOtp(body: string): string | undefined {
-    const patterns = [
-        /(?:otp|one[\s-]*time(?:\s+password)?|verification(?:\s+code)?|security code)[^\d]{0,50}(\d{6})/i,
-        /(\d{6})[^\d]{0,50}(?:otp|one[\s-]*time(?:\s+password)?|verification(?:\s+code)?|security code)/i,
-    ];
-    for (const pattern of patterns) {
-        const match = body.match(pattern);
-        if (match?.[1]) return match[1];
-    }
-    return undefined;
-}
 
 export async function getLatestSmsTimestamp(deviceId: string): Promise<number> {
     const [latest] = await readInbox(deviceId);
     return latest?.receivedAt ?? 0;
 }
 
-export async function waitForSmsOtp(deviceId: string, newerThan: number, timeoutMs = 90_000): Promise<string> {
+export async function waitForSmsOtp(deviceId: string, newerThan: number, timeoutMs = 150_000): Promise<string> {
     const startedAt = Date.now();
     while (Date.now() - startedAt < timeoutMs) {
         const messages = await readInbox(deviceId);
@@ -98,5 +85,5 @@ export async function waitForSmsOtp(deviceId: string, newerThan: number, timeout
         }
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     }
-    throw new Error(`No new six digit OTP SMS arrived on device "${deviceId}" within ${timeoutMs / 1_000} seconds.`);
+    throw new Error(`No matching fresh six-digit OTP was found in the device SMS inbox within ${timeoutMs / 1_000} seconds. Confirm delivery to this device; notification-only messages are not SMS inbox records.`);
 }

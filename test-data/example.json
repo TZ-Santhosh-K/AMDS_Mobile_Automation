@@ -1,0 +1,7 @@
+{
+  "AMDS_DEVICE_ID": "your-device-serial",
+  "AMDS_TEST_MOBILE": "your-test-mobile",
+  "AMDS_TEST_EMAIL": "",
+  "AMDS_FIXED_OTP_MOBILE": "",
+  "AMDS_FIXED_OTP_EMAIL": ""
+}
