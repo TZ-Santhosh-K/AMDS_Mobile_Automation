@@ -1,7 +1,9 @@
 {
   "AMDS_DEVICE_ID": "your-device-serial",
+  "AMDS_RESET_APP_DATA": "false",
   "AMDS_TEST_MOBILE": "your-test-mobile",
-  "AMDS_TEST_EMAIL": "",
+  "AMDS_TEST_EMAIL": "your-test-email",
+  "AMDS_FIXED_OTP": "123456",
   "AMDS_FIXED_OTP_MOBILE": "",
   "AMDS_FIXED_OTP_EMAIL": ""
 }
