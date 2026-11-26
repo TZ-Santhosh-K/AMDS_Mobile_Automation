@@ -2,7 +2,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 const dataPath = path.resolve(process.cwd(), process.env.AMDS_TEST_DATA_FILE ?? 'test-data/local.json');
-const data: unknown = existsSync(dataPath) ? JSON.parse(readFileSync(dataPath, 'utf8')) : {};
+const defaultFixedOtp = '123456';
+const dataText = existsSync(dataPath) ? readFileSync(dataPath, 'utf8').replace(/^\uFEFF/, '') : '{}';
+const data: unknown = JSON.parse(dataText);
 if (!data || typeof data !== 'object' || Array.isArray(data) || Object.values(data).some(value => typeof value !== 'string')) {
     throw new Error('Test data must be a JSON object with string values.');
 }
@@ -25,7 +27,9 @@ export function getDeviceId(): string {
 // Opt-in, exact account matching. No match means normal OTP retrieval.
 export function fixedOtpFor(channel: 'mobile' | 'email', account: string): string | undefined {
     const configured = setting(channel === 'mobile' ? 'AMDS_FIXED_OTP_MOBILE' : 'AMDS_FIXED_OTP_EMAIL');
-    const normalize = (value: string) => channel === 'email' ? value.trim().toLowerCase() : value.trim();
-    if (!configured || normalize(configured) !== normalize(account)) return undefined;
-    return '123456';
+    const accountMatches = channel === 'email'
+        ? configured?.toLowerCase() === account.trim().toLowerCase()
+        : configured === account.trim();
+    if (!configured || !accountMatches) return undefined;
+    return setting('AMDS_FIXED_OTP') || defaultFixedOtp;
 }

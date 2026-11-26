@@ -1,6 +1,6 @@
 
 import { remote } from 'webdriverio';
-import { getDeviceId } from './config';
+import { getDeviceId, setting } from './config';
 
 const APPIUM_HOST = process.env.APPIUM_HOST ?? '127.0.0.1';
 const APPIUM_PORT = Number(process.env.APPIUM_PORT ?? 4723);
@@ -10,6 +10,7 @@ const APP_ACTIVITY = process.env.AMDS_APP_ACTIVITY ?? '.MainActivity';
 
 export async function createAppiumDriver() {
     const deviceId = getDeviceId();
+    const resetAppData = setting('AMDS_RESET_APP_DATA')?.toLowerCase() === 'true';
     const driver = await remote({
         logLevel: 'error',
         hostname: APPIUM_HOST,
@@ -24,7 +25,7 @@ export async function createAppiumDriver() {
             'appium:udid': deviceId,
             'appium:appPackage': APP_PACKAGE,
             'appium:appActivity': APP_ACTIVITY,
-            'appium:noReset': true
+            'appium:noReset': !resetAppData
         }
     });
 

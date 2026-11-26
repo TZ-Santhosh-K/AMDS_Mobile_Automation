@@ -4,7 +4,7 @@ export class DashboardPage {
     constructor(private readonly driver: Browser) {}
 
     private get successLabel() {
-        return this.driver.$('//*[contains(@text, "Successfully logged") or contains(@content-desc, "Successfully logged")]');
+        return this.driver.$('//*[contains(@text, "Select Service") or contains(@content-desc, "Select Service")]');
     }
 
     async isDisplayed(): Promise<boolean> {
